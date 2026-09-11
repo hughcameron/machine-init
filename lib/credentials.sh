@@ -6,7 +6,7 @@
 # Nothing in here ever writes a secret to stdout, to the log, or to the shell
 # history. The age key goes from `op` straight into a 0600 file.
 
-: "${OP_AGE_ITEM:=op://Personal/Chezmoi Setup/keys.txt}"
+: "${OP_AGE_ITEM:=op://Infra/Chezmoi Setup/keys.txt}"
 : "${AGE_KEY_PATH:=$HOME/.config/chezmoi/age/keys.txt}"
 
 # A service-account token is a bearer credential with no second factor. It is

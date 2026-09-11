@@ -36,7 +36,7 @@ The trap is worth stating plainly. A bootstrap token that lives on the machine i
 op service-account create "bootstrap" --vault "Machines:read_items" --expires-in 24h
 ```
 
-One constraint decides whether this is available at all: the age identity must live in a **custom vault**. A service account can never read Personal or Private, so a key stored there rules the option out entirely.
+One constraint decides whether this is available at all: the age identity must live in a **custom vault**, because a service account can never be granted access to Personal or Private. The identity this script expects is in such a vault, so the option is open.
 
 The token is shown once at creation and never again, so store it in 1Password itself the moment you make one. The script warns whenever it sees the token set, with a reminder to confirm it hasn't survived into shell rc files, systemd units, or the seed left on disk.
 
@@ -45,7 +45,7 @@ The token is shown once at creation and never again, so store it in 1Password it
 | Variable | Default | Purpose |
 |---|---|---|
 | `CONFIG_REPO` | `git@github.com:hughcameron/config.git` | private chezmoi source |
-| `OP_AGE_ITEM` | `op://Personal/Chezmoi Setup/keys.txt` | where the age identity lives |
+| `OP_AGE_ITEM` | `op://Infra/Chezmoi Setup/keys.txt` | where the age identity lives |
 | `AGE_KEY_PATH` | `~/.config/chezmoi/age/keys.txt` | where to write it |
 | `OP_SERVICE_ACCOUNT_TOKEN` | unset | non-interactive 1Password auth |
 | `MACHINE_INIT_ASSUME_YES` | unset | skip confirmation prompts |
