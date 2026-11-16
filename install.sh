@@ -2,7 +2,8 @@
 #
 # machine-init — bring a bare machine to the point where chezmoi can take over.
 #
-#   curl -fsSL https://raw.githubusercontent.com/hughcameron/machine-init/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/hughcameron/machine-init/main/install.sh \
+#     | CONFIG_REPO=https://github.com/<owner>/<repo>.git bash
 #
 # What it does, in order: system prerequisites, Homebrew, chezmoi/age/gh,
 # 1Password (the app and CLI on macOS, the CLI on Linux), the age identity,
@@ -15,7 +16,7 @@
 # Safe to re-run. It never overwrites an existing age key and never prints one.
 #
 # Environment overrides:
-#   CONFIG_REPO                  private chezmoi source (default below)
+#   CONFIG_REPO                  required: HTTPS URL of the private chezmoi repo
 #   OP_AGE_ITEM                  op:// reference to the age identity
 #   AGE_KEY_PATH                 where to write it
 #   OP_SERVICE_ACCOUNT_TOKEN     non-interactive 1Password auth (see README)
@@ -24,7 +25,6 @@
 
 set -euo pipefail
 
-: "${CONFIG_REPO:=git@github.com:hughcameron/config.git}"
 : "${LOG_FILE:=${TMPDIR:-/tmp}/machine-init.log}"
 
 # When piped from curl there is no script directory to source from, so fetch the
@@ -55,8 +55,10 @@ source_lib() {
 source_lib common.sh
 source_lib prereqs.sh
 source_lib credentials.sh
+source_lib handoff.sh
 
 main() {
+  require_config_repo
   : >"$LOG_FILE"
   log "machine-init starting"
   log "log file: $LOG_FILE"
@@ -76,14 +78,7 @@ main() {
   fetch_age_key
   authenticate_github
 
-  step "chezmoi handoff"
-  if [ -d "$HOME/.local/share/chezmoi/.git" ] || chezmoi source-path >/dev/null 2>&1; then
-    log "chezmoi source already initialised; applying"
-    chezmoi apply || die "chezmoi apply failed"
-  else
-    log "initialising chezmoi from $CONFIG_REPO"
-    chezmoi init --apply "$CONFIG_REPO" || die "chezmoi init failed"
-  fi
+  chezmoi_handoff
 
   step "done"
   log "chezmoi has applied your configuration. Remaining manual steps:"

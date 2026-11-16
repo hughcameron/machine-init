@@ -21,6 +21,14 @@ step() {
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# The private repo is the one input this public script cannot carry, so the
+# caller names it. Checked before anything is installed.
+require_config_repo() {
+  [ -n "${CONFIG_REPO:-}" ] || die "set CONFIG_REPO to the HTTPS URL of your private chezmoi repo:
+      curl -fsSL https://raw.githubusercontent.com/hughcameron/machine-init/main/install.sh \\
+        | CONFIG_REPO=https://github.com/<owner>/<repo>.git bash"
+}
+
 # Whether a person can answer a prompt. `curl … | bash` hands bash the script on
 # stdin, so stdin is never a terminal even with someone sitting at one; ask the
 # controlling terminal instead, and read every answer from it.

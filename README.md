@@ -5,8 +5,11 @@ Brings a bare machine to the point where [chezmoi](https://chezmoi.io) can take 
 This repo is public so that a machine with nothing on it — no SSH key, no package manager, no credentials — can fetch one script over plain HTTPS and start. It deliberately contains no configuration of its own. Everything that describes a machine lives in a separate private chezmoi repo, and this script's only job is to install enough tooling to reach it.
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/hughcameron/machine-init/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hughcameron/machine-init/main/install.sh \
+  | CONFIG_REPO=https://github.com/<owner>/<repo>.git bash
 ```
+
+`CONFIG_REPO` is required: this repo names no private repo, so the caller passes the HTTPS URL of theirs, and the script stops before installing anything if it is missing.
 
 ## What it does
 
@@ -24,7 +27,9 @@ The **age identity** comes from 1Password. It is read with `op read` straight in
 
 On macOS the script installs the 1Password app and, when `op` has no account yet, opens it and pauses. Sign in to the app (a setup code from your phone saves typing the Secret Key), turn on Settings → Developer → Integrate with 1Password CLI, and press Enter: `op` then signs in through the app. Press Enter without doing that and the script falls back to `op account add` in the terminal.
 
-**GitHub access** comes from `gh auth login` device flow — you get a code and enter it on another device. No long-lived GitHub token is stored in a vault, so there's nothing standing that could be lifted later. If no working SSH key is present, the script generates one and registers it.
+**GitHub access** comes from `gh auth login` device flow — you get a code and enter it on another device. No long-lived GitHub token is stored in a vault, so there's nothing standing that could be lifted later. The private repo is cloned over HTTPS with `gh` as git's credential helper, so the bootstrap needs no SSH key of its own; the private repo deploys the machine's keys once it is applied.
+
+chezmoi clones into its default directory before it reads the repo's config template, so when that template sets `sourceDir`, the script moves the clone there before applying.
 
 ## Headless machines
 
@@ -48,7 +53,7 @@ The token is shown once at creation and never again, so store it in 1Password it
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `CONFIG_REPO` | `git@github.com:hughcameron/config.git` | private chezmoi source |
+| `CONFIG_REPO` | required | HTTPS URL of the private chezmoi repo |
 | `OP_AGE_ITEM` | `op://Infra/Chezmoi Setup/keys.txt` | where the age identity lives |
 | `AGE_KEY_PATH` | `~/.config/chezmoi/age/keys.txt` | where to write it |
 | `OP_SERVICE_ACCOUNT_TOKEN` | unset | non-interactive 1Password auth |

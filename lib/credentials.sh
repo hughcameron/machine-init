@@ -93,24 +93,14 @@ authenticate_github() {
       Run this from an SSH session rather than from cloud-init."
     log "starting gh device-flow login — you will be given a code to enter"
     log "on another device at https://github.com/login/device"
-    gh auth login --git-protocol ssh --hostname github.com </dev/tty \
+    gh auth login --hostname github.com --git-protocol https --web </dev/tty \
       || die "gh auth login failed"
   fi
 
-  # chezmoi clones over SSH, so gh's credential helper is not enough on its own;
-  # an SSH key must be present and registered. gh can upload one for us.
-  # Bounded: an unreachable or filtered github.com must not stall the run.
-  if ! ssh -o StrictHostKeyChecking=accept-new \
-           -o BatchMode=yes -o ConnectTimeout=10 \
-           -T git@github.com 2>&1 | grep -q 'successfully authenticated'; then
-    log "no working SSH key for github; generating and uploading one"
-    gh auth refresh -h github.com -s admin:public_key >>"$LOG_FILE" 2>&1 || true
-    if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
-      ssh-keygen -t ed25519 -N '' -C "$(hostname)-bootstrap" -f "$HOME/.ssh/id_ed25519" \
-        >>"$LOG_FILE" 2>&1 || die "ssh-keygen failed"
-    fi
-    gh ssh-key add "$HOME/.ssh/id_ed25519.pub" --title "$(hostname) bootstrap" \
-      >>"$LOG_FILE" 2>&1 || log "WARN: could not upload SSH key; add it manually"
-  fi
+  # chezmoi clones over HTTPS with gh as git's credential helper, so the
+  # bootstrap needs no SSH key of its own: the private repo deploys the
+  # machine's keys once it is applied.
+  gh auth setup-git --hostname github.com >>"$LOG_FILE" 2>&1 \
+    || die "could not make gh git's credential helper"
   log "github access ready"
 }
