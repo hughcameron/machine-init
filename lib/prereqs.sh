@@ -40,6 +40,13 @@ install_homebrew() {
   if have brew; then
     log "brew already present at $(command -v brew)"
   else
+    # Non-interactive Homebrew never asks for a password: it uses sudo only if sudo
+    # already has one. On Linux the package step above has asked for it; on macOS
+    # nothing has yet, so ask now while a person is at the terminal.
+    if have_tty && ! sudo -n true 2>/dev/null; then
+      log "Homebrew needs sudo; enter your password for this machine"
+      sudo -v || die "sudo is needed to install Homebrew"
+    fi
     log "installing homebrew (non-interactive)"
     NONINTERACTIVE=1 /bin/bash -c \
       "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
@@ -76,7 +83,20 @@ install_core_tools() {
 # Homebrew at all, so we take the official static binary — which also avoids
 # committing to apt vs pacman.
 install_op() {
-  step "1Password CLI"
+  step "1Password"
+
+  # On macOS the app comes too. It can be set up from a phone's setup code, and
+  # with its CLI integration on, op signs in through it rather than asking for
+  # the Secret Key in this terminal.
+  if [ "$OS" = darwin ]; then
+    if [ -d /Applications/1Password.app ]; then
+      log "1Password app already present"
+    else
+      brew install --cask 1password >>"$LOG_FILE" 2>&1 \
+        || die "failed to install 1password cask"
+      log "1Password app installed via cask"
+    fi
+  fi
 
   if have op; then
     log "op already present: $(op --version 2>/dev/null || echo unknown)"

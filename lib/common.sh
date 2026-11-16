@@ -21,6 +21,11 @@ step() {
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# Whether a person can answer a prompt. `curl … | bash` hands bash the script on
+# stdin, so stdin is never a terminal even with someone sitting at one; ask the
+# controlling terminal instead, and read every answer from it.
+have_tty() { { : </dev/tty; } 2>/dev/null; }
+
 # Detect platform once. Sets OS and ARCH.
 detect_platform() {
   case "$(uname -s)" in
@@ -63,10 +68,10 @@ require_non_root() {
 
 confirm() {
   # Non-interactive runs (cloud-init) must not block on a prompt.
-  if [ -n "${MACHINE_INIT_ASSUME_YES:-}" ] || [ ! -t 0 ]; then
+  if [ -n "${MACHINE_INIT_ASSUME_YES:-}" ] || ! have_tty; then
     return 0
   fi
   printf '%s [y/N] ' "$1" >&2
-  read -r reply
+  read -r reply </dev/tty
   case "$reply" in [yY]*) return 0 ;; *) return 1 ;; esac
 }

@@ -10,7 +10,9 @@ curl -fsSL https://raw.githubusercontent.com/hughcameron/machine-init/main/insta
 
 ## What it does
 
-Seven steps, in order, each idempotent: system prerequisites for the detected package manager, Homebrew, then `chezmoi`, `age` and `gh` from Homebrew, then the 1Password CLI, then the age identity, then GitHub access, then `chezmoi init --apply` against the private repo.
+Seven steps, in order, each idempotent: system prerequisites for the detected package manager, Homebrew, then `chezmoi`, `age` and `gh` from Homebrew, then 1Password (the app and the CLI on macOS, the CLI on Linux), then the age identity, then GitHub access, then `chezmoi init --apply` against the private repo.
+
+The prompts — sudo for Homebrew on macOS, 1Password sign-in, the GitHub device code — read from the terminal rather than from stdin, so they work under `curl … | bash`, where bash's stdin is the script itself.
 
 It stops at that handoff. Installing the full Brewfile, yazi plugins and project repos is a handful of commands you run afterwards with a working shell — which is a better place to be than halfway through a long unattended script on a machine that has no tooling to debug it. The script prints those remaining commands when it finishes.
 
@@ -19,6 +21,8 @@ It stops at that handoff. Installing the full Brewfile, yazi plugins and project
 A bootstrap needs to solve a chicken-and-egg: the private repo holds the secrets, but you need a credential to reach the private repo, and another to decrypt what's inside it.
 
 The **age identity** comes from 1Password. It is read with `op read` straight into `~/.config/chezmoi/age/keys.txt` with mode 0600, is never written to stdout or to the log, and an existing key is never overwritten.
+
+On macOS the script installs the 1Password app and, when `op` has no account yet, opens it and pauses. Sign in to the app (a setup code from your phone saves typing the Secret Key), turn on Settings → Developer → Integrate with 1Password CLI, and press Enter: `op` then signs in through the app. Press Enter without doing that and the script falls back to `op account add` in the terminal.
 
 **GitHub access** comes from `gh auth login` device flow — you get a code and enter it on another device. No long-lived GitHub token is stored in a vault, so there's nothing standing that could be lifted later. If no working SSH key is present, the script generates one and registers it.
 
@@ -54,4 +58,4 @@ The token is shown once at creation and never again, so store it in 1Password it
 
 ## Platforms
 
-macOS and Linux, on `arm64` or `amd64`. Linux prerequisites go through whichever of `apt`, `pacman`, `dnf` or `zypper` is present, and everything above that layer is Homebrew, so an Arch-based machine needs no new branch. The 1Password CLI is a Homebrew cask on macOS but isn't in Homebrew on Linux at all, so there the script takes the official static binary — which is also what keeps it distro-agnostic.
+macOS and Linux, on `arm64` or `amd64`. Linux prerequisites go through whichever of `apt`, `pacman`, `dnf` or `zypper` is present, and everything above that layer is Homebrew, so an Arch-based machine needs no new branch. The 1Password app and CLI are Homebrew casks on macOS (an app already in `/Applications` is left alone). The CLI isn't in Homebrew on Linux at all, so there the script takes the official static binary — which is also what keeps it distro-agnostic.

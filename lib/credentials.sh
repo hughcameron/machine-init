@@ -38,22 +38,31 @@ fetch_age_key() {
     # `op account list` exits 0 with EMPTY output when no account is configured,
     # so its exit status cannot be used as the guard — test the output instead.
     if [ -z "$(op account list 2>/dev/null)" ]; then
-      if [ ! -t 0 ]; then
-        die "no 1Password account configured and no TTY to sign in on.
+      have_tty || die "no 1Password account configured and no TTY to sign in on.
       Either run this from an interactive session, or provide a service
       account token in OP_SERVICE_ACCOUNT_TOKEN. See the README."
+      if [ "$OS" = darwin ] && [ -d /Applications/1Password.app ]; then
+        log "Sign in to the 1Password app, then turn on Settings > Developer >"
+        log "'Integrate with 1Password CLI' so op can sign in through it."
+        log "Press Enter when that's done, or press Enter now to sign in here instead."
+        open -a 1Password 2>/dev/null || true
+        read -r _ </dev/tty
       fi
+    fi
+    if [ -z "$(op account list 2>/dev/null)" ]; then
       log "no 1Password account configured; starting sign-in"
-      op account add || die "1Password account setup failed"
+      op account add </dev/tty || die "1Password account setup failed"
     fi
 
-    # Likewise, `eval \"\$(op signin)\"` reports eval's status, not op's: a failed
-    # signin yields an empty string and eval succeeds. Capture it separately.
+    # `eval \"\$(op signin)\"` would report eval's status, not op's, so capture the
+    # output first. Through the app's CLI integration op signin authorises in the
+    # app and prints nothing, so an empty result is not a failure in itself:
+    # op whoami is the check that the sign-in took.
     local signin_env
-    if ! signin_env="$(op signin 2>>"$LOG_FILE")" || [ -z "$signin_env" ]; then
-      die "1Password sign-in failed; see $LOG_FILE"
-    fi
-    eval "$signin_env"
+    signin_env="$(op signin </dev/tty 2>>"$LOG_FILE")" \
+      || die "1Password sign-in failed; see $LOG_FILE"
+    [ -z "$signin_env" ] || eval "$signin_env"
+    op whoami >/dev/null 2>>"$LOG_FILE" || die "1Password sign-in failed; see $LOG_FILE"
   fi
 
   mkdir -p "$(dirname "$AGE_KEY_PATH")"
@@ -80,11 +89,11 @@ authenticate_github() {
   else
     # gh auth login blocks forever without a TTY — closing stdin is not enough
     # to make it give up — so refuse rather than hang a provisioning run.
-    [ -t 0 ] || die "GitHub authentication needs an interactive terminal.
-      Run this from an SSH session rather than from cloud-init or a pipe."
+    have_tty || die "GitHub authentication needs an interactive terminal.
+      Run this from an SSH session rather than from cloud-init."
     log "starting gh device-flow login — you will be given a code to enter"
     log "on another device at https://github.com/login/device"
-    gh auth login --git-protocol ssh --hostname github.com \
+    gh auth login --git-protocol ssh --hostname github.com </dev/tty \
       || die "gh auth login failed"
   fi
 

@@ -4,8 +4,9 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/hughcameron/machine-init/main/install.sh | bash
 #
-# What it does, in order: system prerequisites, Homebrew, chezmoi/age/gh, the
-# 1Password CLI, the age identity, GitHub access, then `chezmoi init --apply`
+# What it does, in order: system prerequisites, Homebrew, chezmoi/age/gh,
+# 1Password (the app and CLI on macOS, the CLI on Linux), the age identity,
+# GitHub access, then `chezmoi init --apply`
 # against the private config repo. It stops there on purpose — installing the
 # full Brewfile, yazi plugins and project repos is a handful of commands you
 # run with a working shell and a debugger, rather than a long unattended script
