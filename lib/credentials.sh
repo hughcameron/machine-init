@@ -93,7 +93,10 @@ authenticate_github() {
       Run this from an SSH session rather than from cloud-init."
     log "starting gh device-flow login — you will be given a code to enter"
     log "on another device at https://github.com/login/device"
-    gh auth login --hostname github.com --git-protocol https --web </dev/tty \
+    # Pushes go over HTTPS with gh's token, and GitHub refuses a push that
+    # changes .github/workflows/ unless the token has the workflow scope.
+    gh auth login --hostname github.com --git-protocol https --web \
+      --scopes workflow </dev/tty \
       || die "gh auth login failed"
   fi
 
