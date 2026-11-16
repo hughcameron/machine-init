@@ -81,7 +81,9 @@ main() {
   chezmoi_handoff
 
   step "done"
-  log "chezmoi has applied your configuration. Remaining manual steps:"
+  log "chezmoi has applied your configuration. Remaining manual steps, in a NEW terminal:"
+  log "this shell predates the shell config chezmoi just installed (XDG_CONFIG_HOME among it),"
+  log "so Homebrew run here records trusted taps where your shell's Homebrew never looks."
   log ""
   log "  brew bundle install --file ~/.config/homebrew/brewfile-\$(uname -s | tr 'A-Z' 'a-z').txt"
   log "  ya pkg install                 # yazi plugins"

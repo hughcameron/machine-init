@@ -19,6 +19,8 @@ The prompts — sudo for Homebrew on macOS, 1Password sign-in, the GitHub device
 
 It stops at that handoff. Installing the full Brewfile, yazi plugins and project repos is a handful of commands you run afterwards with a working shell — which is a better place to be than halfway through a long unattended script on a machine that has no tooling to debug it. The script prints those remaining commands when it finishes.
 
+Run them in a new terminal. The bootstrap's shell predates the shell configuration chezmoi has just installed, `XDG_CONFIG_HOME` among it, so Homebrew run in that shell records the Brewfile's trusted taps in `~/.homebrew/trust.json`, where Homebrew in your configured shell never looks, and the next command that loads one of those formulas refuses it as untrusted.
+
 ## The two credentials
 
 A bootstrap needs to solve a chicken-and-egg: the private repo holds the secrets, but you need a credential to reach the private repo, and another to decrypt what's inside it.
@@ -48,6 +50,17 @@ op service-account create "bootstrap" --vault "Machines:read_items" --expires-in
 One constraint decides whether this is available at all: the age identity must live in a **custom vault**, because a service account can never be granted access to Personal or Private. The identity this script expects is in such a vault, so the option is open.
 
 The token is shown once at creation and never again, so store it in 1Password itself the moment you make one. The script warns whenever it sees the token set, with a reminder to confirm it hasn't survived into shell rc files, systemd units, or the seed left on disk.
+
+## Rehearsing on a VM
+
+The interactive steps are the ones an unattended test cannot reach, and on a real machine they are where the bootstrap has failed. `test/macos-vm.sh` boots a throwaway macOS VM from a [Tart](https://tart.run) base image, opens its window so the 1Password app can be signed in there, and runs the bootstrap over SSH in your terminal so every prompt appears in front of you. It deletes the VM afterwards unless `KEEP_VM` is set.
+
+```sh
+brew install cirruslabs/cli/tart
+CONFIG_REPO=https://github.com/<owner>/<repo>.git test/macos-vm.sh
+```
+
+It needs Apple silicon and room for a macOS base image, which is tens of gigabytes. Pass another image as the first argument, and set `INSTALL_URL` to a branch's raw `install.sh` to rehearse a change before merging it.
 
 ## Configuration
 
